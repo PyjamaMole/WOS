@@ -13,6 +13,17 @@
             font-weight: bold;
         }
 
+        #setup {
+            transform-origin: top left;
+            width: 1920px;
+            height: 1080px;
+            background-color: #420072;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
         #container {
             transform-origin: top left;
             width: 1920px;
@@ -66,9 +77,39 @@
             color: #ddccff;
         }
 
+        .setup {
+            background-color: #8844cc;
+            color: #420072;
+            border: 6px solid #ddccff;
+            border-radius: 24px;
+            font-size: 48px;
+            text-align: center;
+            width: 550px;
+            padding: 12px;
+        }
+
+        .input {
+            background-color: transparent;
+            color: #ddccff;
+            border: 6px solid #ddccff;
+            border-radius: 24px;
+            font-size: 48px;
+            width: 550px;
+            padding: 12px;
+            word-break: break-all;
+        }
+
+        .input:focus {
+            outline: none;
+        }
+
     </style>
 </head>
 <body>
+    <div id="setup" style="display: none;">
+        <div id="prompt" class="setup">Please copy your words on stream mirror link from the settings and paste it below</div>
+        <div id="input" class="input" contenteditable="true"></div>
+    </div>
     <div id="container">
         <iframe id="frame" width="1920" height="1080"></iframe>
         <div id="right-banner" style="display: none;"></div>
@@ -77,9 +118,7 @@
     <script>
         let board = {}, boards, retries, right = false, bottom = false;
         const letter_values = new Uint8Array([1,3,3,2,1,4,2,4,1,8,5,1,3,1,1,3,10,1,1,1,1,4,4,8,4,10]);
-
         const id = document.location.search.slice(1);
-        document.getElementById('frame').src = 'https://wos.gg/r/' + id;
 
         updateScale();
         window.addEventListener('resize', () => {
@@ -89,10 +128,30 @@
         function updateScale(factor = 1) {
             const widthScale = window.innerWidth / 1920;
             const heightScale = window.innerWidth / 1080;
-            document.getElementById('container').style.transform = `scale(${factor * Math.min(widthScale, heightScale)})`;
+            document.getElementById('container').style.transform = `scale(${factor * Math.min(widthScale, heightScale)})`
+            document.getElementById('setup').style.transform = `scale(${factor * Math.min(widthScale, heightScale)})`;
         }
 
-        (async () => {
+        if(/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(id)) {
+            document.getElementById('frame').src = 'https://wos.gg/r/' + id;
+            start_game();
+        } else {
+            document.getElementById('setup').style.display = 'flex';
+            document.getElementById('container').style.display = 'none';
+
+            const input = document.getElementById('input');
+            const prompt = document.getElementById('prompt');
+
+            input.addEventListener('input', (event) => {
+                const id = input.textContent.match(/[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}/)?.[0];
+                if(id) {
+                    input.textContent = 'https://pyjamamole.github.io/WOS/?' + id;
+                    prompt.textContent = 'Use the link below as a browser source at a resolution of 1920x1080';
+                }
+            })
+        }
+
+        async function start_game() {
             boards = await parse_boards();
             open_socket();
 
@@ -147,7 +206,7 @@
                 return boards;
             }
 
-        })();
+        }
 
         function open_socket() {
             const socket = new WebSocket(`wss://wos2.gartic.es/socket.io/?uid=${id}&EIO=3&transport=websocket`);
